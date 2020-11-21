@@ -20,11 +20,12 @@ object Doc {
   final case class Link(url: String, description: Option[String])             extends Doc
 
   // Operators
-  final case class Append(left: Doc, right: Doc)        extends Doc
-  final case class Union(left: Doc, right: Doc)         extends Doc
-  final case class Heading(content: Doc, level: Int)    extends Doc
-  final case class Paragraph(content: Doc)              extends Doc
-  final case class Listing(kind: ListKind, items: Doc*) extends Doc
+  final case class Append(left: Doc, right: Doc)     extends Doc
+  final case class Union(left: Doc, right: Doc)      extends Doc
+  final case class Heading(content: Doc, level: Int) extends Doc
+  final case class Paragraph(content: Doc)           extends Doc
+  final case class OrderedList(items: Doc*)          extends Doc
+  final case class UnorderedList(items: Doc*)        extends Doc
 
   def h1(content: Doc): Doc = Heading(content, 1)
 
@@ -48,9 +49,9 @@ object Doc {
 
   def code(language: String, code: String): Doc = Code(language = language, code = code)
 
-  def ol(items: Doc*): Doc = Listing(ListKind.Ordered, items: _*)
+  def ol(items: Doc*): Doc = OrderedList(items: _*)
 
-  def ul(items: Doc*): Doc = Listing(ListKind.Unordered, items: _*)
+  def ul(items: Doc*): Doc = UnorderedList(items: _*)
 
   def italic(value: String): Doc = Text(value, Emphasis.Italic)
 
@@ -100,18 +101,14 @@ object Doc {
         case Emphasis.StrikeThrough => s"~~$value~~"
       }
 
-    case Listing(kind, items @ _*) =>
-      kind match {
-        case ListKind.Ordered =>
-          items.zipWithIndex
-            .map(item => s"${item._2 + 1}. ${asMarkdown(item._1)}\n")
-            .mkString("")
-
-        case ListKind.Unordered =>
-          items
-            .map("- " + asMarkdown(_) + "\n")
-            .mkString("")
-      }
+    case OrderedList(items @ _*) =>
+      items.zipWithIndex
+        .map(item => s"${item._2 + 1}. ${asMarkdown(item._1)}\n")
+        .mkString("")
+    case UnorderedList(items @ _*) =>
+      items
+        .map("- " + asMarkdown(_) + "\n")
+        .mkString("")
   }
 
   implicit def stringToDoc(str: String): Doc = apply(str)
@@ -124,12 +121,5 @@ object Doc {
     final case object Bold          extends Emphasis
     final case object StrikeThrough extends Emphasis
     final case object InlineCode    extends Emphasis
-  }
-
-  sealed trait ListKind
-
-  object ListKind {
-    final case object Ordered   extends ListKind
-    final case object Unordered extends ListKind
   }
 }
