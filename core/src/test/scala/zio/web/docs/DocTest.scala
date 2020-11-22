@@ -33,28 +33,42 @@ object DocTest extends DefaultRunnableSpec {
 
         assert(asMarkdown(actual))(equalTo(expected))
       },
-      test("Emphasis") {
-        val actual =
+      suite("Emphasis")(
+        test("Italic") {
           //                      👇 Having to specify the space ourselves is not nice, this should be dealt with when asMarkdown starts using a context
-          p("Emphasis, aka " <> italic("italics") <> ".") <>
-            p("Strong emphasis, aka " <> bold("bold") <> ".") <>
-            p("And " <> strikethrough("Strikethrough")) <>
+          val actual =
+            p(italic("italic"))
+
+          val expected = "*italic*\n\n"
+
+          assert(asMarkdown(actual))(equalTo(expected))
+        },
+        test("Bold") {
+          val actual =
+            p(bold("bold"))
+
+          val expected = "__bold__\n\n"
+
+          assert(asMarkdown(actual))(equalTo(expected))
+        },
+        test("Striketrhough") {
+          val actual =
+            p(strikethrough("striketrhoug"))
+
+          val expected = "~~striketrhoug~~\n\n"
+
+          assert(asMarkdown(actual))(equalTo(expected))
+        },
+        test("Combined emphasis") {
+          val actual =
             p(
-              "Combined emphasis with " <> strikethrough("sriketrhough " <> bold("bold and " <> italic("italic"))) <> "."
+              "Combined emphasis with " <> strikethrough("sriketrhough " <> bold("bold and " <> italic("italic")))
             )
 
-        val expected =
-          """Emphasis, aka *italics*.
-	          |
-	          |Strong emphasis, aka __bold__.
-	          |
-	          |And ~~Strikethrough~~
-	          |
-	          |Combined emphasis with ~~sriketrhough __bold and *italic*__~~.
-						|
-						|""".stripMargin
+          val expected = "Combined emphasis with ~~sriketrhough __bold and *italic*__~~\n\n"
 
-        assert(asMarkdown(actual))(equalTo(expected))
-      }
+          assert(asMarkdown(actual))(equalTo(expected))
+        }
+      )
     )
 }
