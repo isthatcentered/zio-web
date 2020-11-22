@@ -77,6 +77,7 @@ object Doc {
           case 6 =>
             MDToken.Heading6(Text.toMdToken(content, RenderContext.Block), RenderContext.Root)
         }
+      case Paragraph(content)  => MDToken.Paragraph(Text.toMdToken(content, context), context)
       case Append(left, right) => docToMarkdownToken(left, context) <> docToMarkdownToken(right, context)
       case _                   => MDToken.NotImplemented()
     }
@@ -131,7 +132,7 @@ object Doc {
     final case class Heading4(value: MDToken, context: RenderContext)      extends MDToken
     final case class Heading5(value: MDToken, context: RenderContext)      extends MDToken
     final case class Heading6(value: MDToken, context: RenderContext)      extends MDToken
-    final case class Paragraph(context: RenderContext)                     extends MDToken
+    final case class Paragraph(content: MDToken, context: RenderContext)   extends MDToken
     final case class OrderedList(context: RenderContext)                   extends MDToken
     final case class UnorderedList(context: RenderContext)                 extends MDToken
     final case class ListItem(context: RenderContext)                      extends MDToken
@@ -141,15 +142,19 @@ object Doc {
     final case class Append(left: MDToken, right: MDToken) extends MDToken
 
     def toMdString(token: MDToken): String = token match {
-      case Text(value, _)      => value
-      case Append(left, right) => toMdString(left) + toMdString(right)
-      case Heading1(value, _)  => s"# ${toMdString(value)}\n"
-      case Heading2(value, _)  => s"## ${toMdString(value)}\n"
-      case Heading3(value, _)  => s"### ${toMdString(value)}\n"
-      case Heading4(value, _)  => s"#### ${toMdString(value)}\n"
-      case Heading5(value, _)  => s"##### ${toMdString(value)}\n"
-      case Heading6(value, _)  => s"###### ${toMdString(value)}\n"
-      case _                   => "👉 unhandled_markdown_element 👈"
+      case Text(value, _)          => value
+      case Append(left, right)     => toMdString(left) + toMdString(right)
+      case Heading1(value, _)      => s"# ${toMdString(value)}\n"
+      case Heading2(value, _)      => s"## ${toMdString(value)}\n"
+      case Heading3(value, _)      => s"### ${toMdString(value)}\n"
+      case Heading4(value, _)      => s"#### ${toMdString(value)}\n"
+      case Heading5(value, _)      => s"##### ${toMdString(value)}\n"
+      case Heading6(value, _)      => s"###### ${toMdString(value)}\n"
+      case Paragraph(content, _)   => s"${toMdString(content)}\n\n"
+      case Italic(value, _)        => s"*${toMdString(value)}*"
+      case Bold(value, _)          => s"__${toMdString(value)}__"
+      case Strikethrough(value, _) => s"~~${toMdString(value)}~~"
+      case _                       => s"👉 unhandled_markdown_element $token 👈"
     }
   }
 }
