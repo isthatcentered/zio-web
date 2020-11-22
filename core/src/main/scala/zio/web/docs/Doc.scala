@@ -18,8 +18,8 @@ object Doc {
   final case class CodeBlock(language: String, code: String) extends Doc
   final case class Heading(content: Text, level: Int)        extends Doc
   final case class Paragraph(content: Text)                  extends Doc
-  final case class OrderedList(items: Text*)                 extends Doc
-  final case class UnorderedList(items: Text*)               extends Doc
+  final case class OrderedList(content: Doc)                 extends Doc
+  final case class UnorderedList(content: Doc)               extends Doc
 
   // Operators
   final case class Append(left: Doc, right: Doc) extends Doc
@@ -41,9 +41,9 @@ object Doc {
 
   def codeBlock(language: String, code: String): Doc = CodeBlock(language = language, code = code)
 
-  def ol(items: Text*): Doc = OrderedList(items: _*)
+  def ol(content: Doc): Doc = OrderedList(content)
 
-  def ul(items: Text*): Doc = UnorderedList(items: _*)
+  def ul(content: Doc): Doc = UnorderedList(content)
 
   def apply(text: String): Doc = Paragraph(Text.Regular(text))
 
