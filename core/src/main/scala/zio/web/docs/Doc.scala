@@ -14,112 +14,76 @@ sealed trait Doc {
 
 object Doc {
   // Constructors
-  case object Empty                                                           extends Doc
-  final case class Text(value: String, emphasis: Emphasis = Emphasis.Regular) extends Doc
-  final case class Code(language: String, code: String)                       extends Doc
-  final case class Link(url: String, description: Option[String])             extends Doc
+  case object Empty                                          extends Doc
+  final case class CodeBlock(language: String, code: String) extends Doc
+  final case class Heading(content: Text, level: Int)        extends Doc
+  final case class Paragraph(content: Text)                  extends Doc
+  final case class OrderedList(items: Text*)                 extends Doc
+  final case class UnorderedList(items: Text*)               extends Doc
 
   // Operators
-  final case class Append(left: Doc, right: Doc)     extends Doc
-  final case class Union(left: Doc, right: Doc)      extends Doc
-  final case class Heading(content: Doc, level: Int) extends Doc
-  final case class Paragraph(content: Doc)           extends Doc
-  final case class OrderedList(items: Doc*)          extends Doc
-  final case class UnorderedList(items: Doc*)        extends Doc
+  final case class Append(left: Doc, right: Doc) extends Doc
+  final case class Union(left: Doc, right: Doc)  extends Doc
 
-  def h1(content: Doc): Doc = Heading(content, 1)
+  def h1(content: Text): Doc = Heading(content, 1)
 
-  def h2(content: Doc): Doc = Heading(content, 2)
+  def h2(content: Text): Doc = Heading(content, 2)
 
-  def h3(content: Doc): Doc = Heading(content, 3)
+  def h3(content: Text): Doc = Heading(content, 3)
 
-  def h4(content: Doc): Doc = Heading(content, 4)
+  def h4(content: Text): Doc = Heading(content, 4)
 
-  def h5(content: Doc): Doc = Heading(content, 5)
+  def h5(content: Text): Doc = Heading(content, 5)
 
-  def h6(content: Doc): Doc = Heading(content, 6)
+  def h6(content: Text): Doc = Heading(content, 6)
 
-  def p(content: Doc): Doc = Paragraph(content)
+  def p(content: Text): Doc = Paragraph(content)
 
-  def a(url: String, description: String = ""): Doc =
-    Link(url = url, description = description match {
-      case ""    => None
-      case value => Some(value)
-    })
+  def codeBlock(language: String, code: String): Doc = CodeBlock(language = language, code = code)
 
-  def code(language: String, code: String): Doc = Code(language = language, code = code)
+  def ol(items: Text*): Doc = OrderedList(items: _*)
 
-  def ol(items: Doc*): Doc = OrderedList(items: _*)
+  def ul(items: Text*): Doc = UnorderedList(items: _*)
 
-  def ul(items: Doc*): Doc = UnorderedList(items: _*)
+  def apply(text: String): Doc = Paragraph(Text.Regular(text))
 
-  def italic(value: String): Doc = Text(value, Emphasis.Italic)
-
-  def bold(value: String): Doc = Text(value, Emphasis.Bold)
-
-  def strikethrough(value: String): Doc = Text(value, Emphasis.StrikeThrough)
-
-  def inlineCode(value: String): Doc = Text(value, Emphasis.InlineCode)
-
-  def apply(text: String): Doc = Text(text)
-
-  // Interpreters
   def asMarkdown(doc: Doc): String = doc match {
-    case Empty =>
-      ""
-
-    case Union(left, right) =>
-      left match {
-        case Empty => asMarkdown(right)
-        case _     => asMarkdown(left)
-      }
-
-    case Append(left, right) =>
-      asMarkdown(left) + " " + asMarkdown(right)
-
-    case Paragraph(content) =>
-      s"${asMarkdown(content)}\n\n"
-
-    case Heading(content, level) =>
-      s"${"#" * level} ${asMarkdown(content)}\n\n"
-
-    case Link(url, description) =>
-      description match {
-        case Some(description) => s"[$description]($url)"
-        case None              => s"<$url>"
-      }
-
-    case Code(language, code) =>
-      s"\n```$language\n$code\n```\n"
-
-    case Text(value, emphasis) =>
-      emphasis match {
-        case Emphasis.Regular       => value
-        case Emphasis.Italic        => s"_${value}_"
-        case Emphasis.Bold          => s"**$value**"
-        case Emphasis.InlineCode    => s"`$value`"
-        case Emphasis.StrikeThrough => s"~~$value~~"
-      }
-
-    case OrderedList(items @ _*) =>
-      items.zipWithIndex
-        .map(item => s"${item._2 + 1}. ${asMarkdown(item._1)}\n")
-        .mkString("")
-    case UnorderedList(items @ _*) =>
-      items
-        .map("- " + asMarkdown(_) + "\n")
-        .mkString("")
+    case Append(left, right)     => asMarkdown(left) + asMarkdown(right)
+    case Heading(content, level) => s"${"#" * level} ${Text.asMarkdown(content)}\n"
+    case Paragraph(content)      => s"${Text.asMarkdown(content)}\n\n"
+    case _                       => "👉 unhandled_doc_element 👈"
   }
 
-  implicit def stringToDoc(str: String): Doc = apply(str)
+  implicit def stringToInlineElement(str: String): Text = Text.Regular(str)
+  implicit def stringToDoc(str: String): Doc            = p(str)
 
-  sealed trait Emphasis
+  sealed trait Text {
+    self =>
 
-  object Emphasis {
-    final case object Regular       extends Emphasis
-    final case object Italic        extends Emphasis
-    final case object Bold          extends Emphasis
-    final case object StrikeThrough extends Emphasis
-    final case object InlineCode    extends Emphasis
+    def <>(that: Text): Text =
+      Text.Append(self, that)
+  }
+
+  object Text {
+    final case class Regular(value: String)                 extends Text
+    final case class Italic(content: Text)                  extends Text
+    final case class Bold(content: Text)                    extends Text
+    final case class Strikethrough(content: Text)           extends Text
+    final case class Code(value: String)                    extends Text
+    final case class Link(url: String, description: String) extends Text
+    final case class Append(left: Text, right: Text)        extends Text
+
+    def italic(value: Text): Text        = Italic(value)
+    def bold(value: Text): Text          = Bold(value)
+    def strikethrough(value: Text): Text = Strikethrough(value)
+
+    def asMarkdown(element: Text): String = element match {
+      case Append(left, right)    => asMarkdown(left) + asMarkdown(right)
+      case Regular(value)         => value
+      case Italic(content)        => s"*${asMarkdown(content)}*"
+      case Bold(content)          => s"__${asMarkdown(content)}__"
+      case Strikethrough(content) => s"~~${asMarkdown(content)}~~"
+      case _                      => "👉 unhandled_inline_element 👈"
+    }
   }
 }
