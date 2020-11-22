@@ -45,17 +45,24 @@ lazy val root = project
     name := "zio-web",
     skip in publish := true
   )
-  .aggregate(
-    core
-  )
+  .aggregate(core)
 
 lazy val core = project
   .in(file("core"))
   .settings(stdSettings("zio-http-core"))
   .settings(
     libraryDependencies ++= Seq(
-      "dev.zio" %% "zio"         % zioVersion,
-      "dev.zio" %% "zio-streams" % zioVersion,
-      "dev.zio" %% "zio-nio"     % zioNioVersion
-    )
+      "dev.zio"        %% "zio"          % zioVersion,
+      "dev.zio"        %% "zio-streams"  % zioVersion,
+      "dev.zio"        %% "zio-nio"      % zioNioVersion,
+      "dev.zio"        %% "zio-test"     % zioVersion % "Test",
+      "dev.zio"        %% "zio-test-sbt" % zioVersion % "Test",
+      "com.propensive" %% "magnolia"     % magnoliaVersion,
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided
+    ),
+    testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
+  .dependsOn(schema)
+
+lazy val schema =
+  ProjectRef(uri("git://github.com/zio/zio-schema.git#main"), "core")
